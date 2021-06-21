@@ -1,0 +1,59 @@
+---
+title: "RStudio Community"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    source_code: embed
+    theme:
+      version: 4
+      bootswatch: lumen
+    css: styles/custom.css
+---
+
+```{r load_proj, include=FALSE}
+devtools::load_all()
+```
+
+```{r load_packages, include=FALSE, cache=TRUE}
+library(flexdashboard)
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(reactable)
+```
+
+```{r read_data, include=FALSE, cache=TRUE}
+community_stats <- get_community_stats()
+top_users <- get_top_users()
+```
+
+Home {data-icon="ion-home"}
+====
+
+Row
+-----------------------------------------------------------------------
+
+### Total Posts
+
+```{r tweets_today}
+valueBox(community_stats$total_posts, icon = "fa-comment-alt")
+```
+
+### Total Topics
+
+```{r tweeters_today}
+valueBox(community_stats$total_topics, icon = "fa-list-ul", color = "info")
+```
+
+### Total Users
+
+```{r likes}
+valueBox(community_stats$total_users, icon = "fa-user")
+```
+
+### Total Tags
+
+```{r unique_tweets}
+valueBox(community_stats$total_tags, icon = "fa-tags", color = "info")
+```
