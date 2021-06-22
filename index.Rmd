@@ -7,7 +7,8 @@ output:
     source_code: embed
     theme:
       version: 4
-      bootswatch: lumen
+      bootswatch: cosmo
+    self_contained: false
     css: styles/custom.css
 ---
 
@@ -21,12 +22,28 @@ library(dplyr)
 library(stringr)
 library(lubridate)
 library(reactable)
+library(htmltools)
 ```
 
 ```{r read_data, include=FALSE, cache=TRUE}
+base_url <- "https://community.rstudio.com"
 community_stats <- get_community_stats()
-top_users <- get_top_users()
+top_users <- get_top_users() %>% 
+  mutate(user_avatar = paste0(base_url, str_replace_all(user.avatar_template, pattern = "\\{size\\}", replacement = "30"))) %>% 
+  rename_with(
+    ~ str_remove(.x, "user\\.")
+  ) %>% 
+  select(-c(avatar_template))
 ```
+
+```{r proc_data, include=FALSE, cache=TRUE}
+top_users_pictured <- top_users %>% 
+  mutate(
+    profile_url = str_glue("{base_url}/u/{username}"),
+    username = str_glue('<a href="{profile_url}" target="_blank">{username}</a>')
+  )
+```
+
 
 Home {data-icon="ion-home"}
 ====
@@ -57,3 +74,81 @@ valueBox(community_stats$total_users, icon = "fa-user")
 ```{r unique_tweets}
 valueBox(community_stats$total_tags, icon = "fa-tags", color = "info")
 ```
+
+Row
+-----------------------------------------------------------------------
+
+### Top 100 Users | <small> By Number of Likes Received </small>
+
+```{r}
+top_users_pictured %>%
+  select(username, name, title, likes_received, post_count) %>%
+  reactable(
+    .,
+    pagination = TRUE,
+    searchable = TRUE,
+    defaultSorted = "likes_received",
+    defaultColDef = colDef(headerClass = "header", align = "left"),
+    columns = list(
+      username = colDef(
+        name = "User",
+        defaultSortOrder = "desc",
+        html = TRUE,
+        cell = function(value, index) {
+          profile <-
+            str_glue(
+              '<img class="img-fluid rounded-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "name"]}">'
+            )
+          str_glue('{profile} {value}')
+        }
+      ),
+      name = colDef(
+        name = "Name"
+      ),
+      title = colDef(
+        name = "Title"
+      ),
+      likes_received = colDef(
+        name = "Likes Received",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          width <-
+            paste0(value * 100 / max(top_users_pictured$likes_received), "%")
+          value <- format(value, big.mark = ",")
+          value <- format(value, width = 9, justify = "right")
+          bar <- div(
+            class = "bar-chart",
+            style = list(marginRight = "6px"),
+            div(
+              class = "bar",
+              style = list(width = width, backgroundColor = "#fc5185")
+            )
+          )
+          div(class = "bar-cell", span(class = "number", value), bar)
+        }
+      ),
+      post_count = colDef(
+        name = "Post Count",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          width <-
+            paste0(value * 100 / max(top_users_pictured$post_count), "%")
+          value <- format(value, big.mark = ",")
+          value <- format(value, width = 9, justify = "right")
+          bar <- div(
+            class = "bar-chart",
+            style = list(marginRight = "6px"),
+            div(
+              class = "bar",
+              style = list(width = width, backgroundColor = "#3fc1c9")
+            )
+          )
+          div(class = "bar-cell", span(class = "number", value), bar)
+        },
+      )
+    ),
+    compact = TRUE,
+    class = "topusers-tbl"
+  )
+```
+
