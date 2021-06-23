@@ -115,13 +115,13 @@ valueBox(community_stats$total_topics, icon = "fa-list-ul", color = "info")
 ### Total Tags
 
 ```{r unique_tweets}
-valueBox(community_stats$total_tags, icon = "fa-tags", color = "info")
+valueBox(community_stats$total_tags, icon = "fa-tags")
 ```
 
 ### Total Users
 
 ```{r likes}
-valueBox(community_stats$total_users, icon = "fa-user")
+valueBox(community_stats$total_users, icon = "fa-user", color = "info")
 ```
 
 Row
