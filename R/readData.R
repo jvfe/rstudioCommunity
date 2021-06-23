@@ -40,7 +40,10 @@ get_top_users <- function(pages = 1) {
       user.avatar_template,
       user.title,
       likes_received,
-      post_count
+      posts_read,
+      post_count,
+      days_visited,
+      topics_entered
     ) %>%
     dplyr::as_tibble()
 }

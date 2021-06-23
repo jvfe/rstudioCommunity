@@ -65,8 +65,9 @@ categories <- get_categories() %>%
 top_users_pictured <- top_users %>% 
   mutate(
     profile_url = str_glue("{base_url}/u/{username}"),
-    username = str_glue('<a href="{profile_url}" target="_blank">{username}</a>')
-  )
+    username = str_glue('<a href="{profile_url}" target="_blank">{ifelse(is.na(name), username, name)}</a>')
+  ) %>%
+  select(-c(name))
 ```
 
 Sidebar {.sidebar data-width=200}
@@ -113,7 +114,7 @@ Row
 
 ```{r}
 top_users_pictured %>%
-  select(username, name, title, likes_received, post_count) %>%
+  select(-c(id, user_avatar, profile_url)) %>%
   reactable(
     .,
     pagination = TRUE,
@@ -130,15 +131,10 @@ top_users_pictured %>%
         cell = function(value, index) {
           profile <-
             str_glue(
-              '<img class="img-fluid img-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "name"]}">'
+              '<img class="img-fluid img-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "id"]}">'
             )
           str_glue('{profile} {value}')
         }
-      ),
-      name = colDef(
-        name = "Name",
-        filterable = TRUE,
-        na = "–"
       ),
       title = colDef(
         name = "Title",
@@ -148,17 +144,36 @@ top_users_pictured %>%
       likes_received = colDef(
         name = "Likes Received",
         defaultSortOrder = "desc",
-        minWidth = 100,
         cell = function(value) {
           build_bar_col(value, top_users_pictured$likes_received, "#fc5185")
         }
       ),
+      posts_read = colDef(
+        name = "Posts Read",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          build_bar_col(value, top_users_pictured$posts_read, "#3fc1c9")
+        },
+      ),
       post_count = colDef(
         name = "Post Count",
         defaultSortOrder = "desc",
-        minWidth = 100,
         cell = function(value) {
-          build_bar_col(value, top_users_pictured$post_count, "#3fc1c9")
+          build_bar_col(value, top_users_pictured$post_count, "#fc5185")
+        },
+      ),
+      days_visited = colDef(
+        name = "Days Visited",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          build_bar_col(value, top_users_pictured$days_visited, "#3fc1c9")
+        },
+      ),
+      topics_entered = colDef(
+        name = "Topics Entered",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          build_bar_col(value, top_users_pictured$topics_entered, "#fc5185")
         },
       )
     ),
