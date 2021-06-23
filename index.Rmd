@@ -5,10 +5,9 @@ output:
     orientation: rows
     vertical_layout: scroll
     source_code: embed
-    theme:
-      version: 4
-      bootswatch: cosmo
     self_contained: false
+    includes:
+      after_body: "afterInit.html"
     css: styles/custom.css
 ---
 
@@ -27,13 +26,39 @@ library(htmltools)
 
 ```{r read_data, include=FALSE, cache=TRUE}
 base_url <- "https://community.rstudio.com"
+
 community_stats <- get_community_stats()
-top_users <- get_top_users() %>% 
-  mutate(user_avatar = paste0(base_url, str_replace_all(user.avatar_template, pattern = "\\{size\\}", replacement = "30"))) %>% 
-  rename_with(
-    ~ str_remove(.x, "user\\.")
+
+top_users <- get_top_users() %>%
+  mutate(user_avatar = paste0(
+    base_url,
+    str_replace_all(
+      user.avatar_template,
+      pattern = "\\{size\\}",
+      replacement = "30"
+    )
+  )) %>%
+  rename_with(~ str_remove(.x, "user\\.")) %>%
+  select(-c(avatar_template)) %>% 
+  mutate_all(list(~na_if(., "")))
+
+categories <- get_categories() %>%
+  select(
+    id,
+    name,
+    topic_url,
+    topic_count,
+    post_count,
+    topics_day,
+    topics_week,
+    topics_month,
+    topics_year,
+    topics_all_time,
+    color
   ) %>% 
-  select(-c(avatar_template))
+  mutate(
+    topic_url = ifelse(is.na(topic_url), base_url, paste0(base_url, topic_url))
+  )
 ```
 
 ```{r proc_data, include=FALSE, cache=TRUE}
@@ -42,12 +67,36 @@ top_users_pictured <- top_users %>%
     profile_url = str_glue("{base_url}/u/{username}"),
     username = str_glue('<a href="{profile_url}" target="_blank">{username}</a>')
   )
+
+build_bar_col <- function(value, max_col, color) {
+  width <-
+    paste0(value * 100 / max(max_col), "%")
+  
+  value <- format(value, big.mark = ",")
+  value <- format(value, width = 9, justify = "right")
+  
+  bar <- div(
+    class = "bar-chart",
+    style = list(marginRight = "6px"),
+    div(
+      class = "bar",
+      style = list(width = width, backgroundColor = color)
+    )
+  )
+  div(class = "bar-cell", span(class = "number", value), bar)
+}
 ```
 
+Sidebar {.sidebar data-width=200}
+=====================================
 
-Home {data-icon="ion-home"}
-====
+<div class="sidebar-pages">
+<a class="navlink" href="#home" data-toggle="tab" aria-expanded="false"><i class="fa fa-home"></i> Home</a>
+</div>
 
+
+Home
+=====================================
 Row
 -----------------------------------------------------------------------
 
@@ -63,22 +112,22 @@ valueBox(community_stats$total_posts, icon = "fa-comment-alt")
 valueBox(community_stats$total_topics, icon = "fa-list-ul", color = "info")
 ```
 
-### Total Users
-
-```{r likes}
-valueBox(community_stats$total_users, icon = "fa-user")
-```
-
 ### Total Tags
 
 ```{r unique_tweets}
 valueBox(community_stats$total_tags, icon = "fa-tags", color = "info")
 ```
 
+### Total Users
+
+```{r likes}
+valueBox(community_stats$total_users, icon = "fa-user")
+```
+
 Row
 -----------------------------------------------------------------------
 
-### Top 100 Users | <small> By Number of Likes Received </small>
+### Top 100 Users | <small> By Number of Likes Received </small> {data-height=500}
 
 ```{r}
 top_users_pictured %>%
@@ -86,69 +135,146 @@ top_users_pictured %>%
   reactable(
     .,
     pagination = TRUE,
-    searchable = TRUE,
+    showPageSizeOptions = TRUE,
+    highlight = TRUE,
     defaultSorted = "likes_received",
-    defaultColDef = colDef(headerClass = "header", align = "left"),
+    defaultColDef = colDef(headerClass = "header", align = "left", minWidth = 50),
     columns = list(
       username = colDef(
         name = "User",
         defaultSortOrder = "desc",
+        filterable = TRUE,
         html = TRUE,
         cell = function(value, index) {
           profile <-
             str_glue(
-              '<img class="img-fluid rounded-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "name"]}">'
+              '<img class="img-fluid img-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "name"]}">'
             )
           str_glue('{profile} {value}')
         }
       ),
       name = colDef(
-        name = "Name"
+        name = "Name",
+        filterable = TRUE,
+        na = "–"
       ),
       title = colDef(
-        name = "Title"
+        name = "Title",
+        filterable = TRUE,
+        na = "–"
       ),
       likes_received = colDef(
         name = "Likes Received",
         defaultSortOrder = "desc",
+        minWidth = 100,
         cell = function(value) {
-          width <-
-            paste0(value * 100 / max(top_users_pictured$likes_received), "%")
-          value <- format(value, big.mark = ",")
-          value <- format(value, width = 9, justify = "right")
-          bar <- div(
-            class = "bar-chart",
-            style = list(marginRight = "6px"),
-            div(
-              class = "bar",
-              style = list(width = width, backgroundColor = "#fc5185")
+          build_bar_col(value, top_users_pictured$likes_received, "#fc5185")
+        }
+      ),
+      post_count = colDef(
+        name = "Post Count",
+        defaultSortOrder = "desc",
+        minWidth = 100,
+        cell = function(value) {
+          build_bar_col(value, top_users_pictured$post_count, "#3fc1c9")
+        },
+      )
+    ),
+    compact = TRUE,
+    class = "topusers-tbl"
+  )
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Categories {data-height=500}
+
+```{r}
+categories %>% 
+  select(
+    name,
+    topic_count,
+    post_count,
+    topics_day,
+    topics_week,
+    topics_month,
+    topics_year,
+    topics_all_time
+  ) %>% 
+  reactable(
+    .,
+    pagination = TRUE,
+    showPageSizeOptions = TRUE,
+    highlight = TRUE,
+    defaultSorted = "post_count",
+    defaultColDef = colDef(headerClass = "header", align = "left"),
+    columns = list(
+      name = colDef(
+        name = "Name",
+        width = 200,
+        defaultSortOrder = "desc",
+        filterable = TRUE,
+        cell = function(value, index) {
+          color <- categories[index, "color"]
+          
+           a(
+             href = categories[index, "topic_url"],
+             class = "category-link btn btn-xs",
+             style = str_glue('background-color: #{color};'),
+             target = "_blank",
+             value
             )
-          )
-          div(class = "bar-cell", span(class = "number", value), bar)
+          
+        }
+      ),
+      topic_count = colDef(
+        name = "Topic Count",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          build_bar_col(value, categories$topic_count, "#fc5185")
         }
       ),
       post_count = colDef(
         name = "Post Count",
         defaultSortOrder = "desc",
         cell = function(value) {
-          width <-
-            paste0(value * 100 / max(top_users_pictured$post_count), "%")
-          value <- format(value, big.mark = ",")
-          value <- format(value, width = 9, justify = "right")
-          bar <- div(
-            class = "bar-chart",
-            style = list(marginRight = "6px"),
-            div(
-              class = "bar",
-              style = list(width = width, backgroundColor = "#3fc1c9")
-            )
-          )
-          div(class = "bar-cell", span(class = "number", value), bar)
-        },
+          build_bar_col(value, categories$post_count, "#3fc1c9")
+        }
+      ),
+      topics_day = colDef(
+        name = "Topics/Day",
+        cell = function(value) {
+          build_bar_col(value, categories$topics_day, "#fc5185")
+        }
+      ),
+      topics_week = colDef(
+        name = "Topics/Week",
+        cell = function(value) {
+          build_bar_col(value, categories$topics_week, "#3fc1c9")
+        }
+      ),
+      topics_month = colDef(
+        name = "Topics/Month",
+        cell = function(value) {
+          build_bar_col(value, categories$topics_month, "#fc5185")
+        }
+      ),
+      topics_year = colDef(
+        name = "Topics/Year",
+        cell = function(value) {
+          build_bar_col(value, categories$topics_year, "#3fc1c9")
+        }
+      ),
+      topics_all_time = colDef(
+        name = "Topics - All Time",
+        cell = function(value) {
+          build_bar_col(value, categories$topics_all_time, "#241327")
+        }
       )
     ),
     compact = TRUE,
-    class = "topusers-tbl"
+    class = "categories-tbl"
   )
 ```
 
