@@ -29,18 +29,11 @@ base_url <- "https://community.rstudio.com"
 
 community_stats <- get_community_stats()
 
-top_users <- get_top_users() %>%
-  mutate(user_avatar = paste0(
-    base_url,
-    str_replace_all(
-      user.avatar_template,
-      pattern = "\\{size\\}",
-      replacement = "30"
-    )
-  )) %>%
-  rename_with(~ str_remove(.x, "user\\.")) %>%
-  select(-c(avatar_template)) %>% 
-  mutate_all(list(~na_if(., "")))
+top_users <- get_top_users()
+
+top_users_yearly <- get_top_users(period = "yearly")
+
+top_users_monthly <- get_top_users(period = "monthly")
 
 categories <- get_categories() %>%
   select(
@@ -62,12 +55,14 @@ categories <- get_categories() %>%
 ```
 
 ```{r proc_data, include=FALSE, cache=TRUE}
-top_users_pictured <- top_users %>% 
-  mutate(
-    profile_url = str_glue("{base_url}/u/{username}"),
-    username = str_glue('<a href="{profile_url}" target="_blank">{ifelse(is.na(name), username, name)}</a>')
-  ) %>%
-  select(-c(name))
+top_users_pictured <- top_users %>%
+  make_user_links(., base_url)
+
+top_users_ypic <- top_users_yearly %>%
+  make_user_links(., base_url)
+
+top_users_mpic <- top_users_monthly %>%
+  make_user_links(., base_url)
 ```
 
 Sidebar {.sidebar data-width=200}
@@ -107,79 +102,28 @@ valueBox(community_stats$total_tags, icon = "fa-tags")
 valueBox(community_stats$total_users, icon = "fa-user", color = "info")
 ```
 
-Row
+Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Top 100 Users | <small> By Number of Likes Received </small> {data-height=500}
+### Top 100 Users | <small> All Time </small>
 
 ```{r}
 top_users_pictured %>%
-  select(-c(id, user_avatar, profile_url)) %>%
-  reactable(
-    .,
-    pagination = TRUE,
-    showPageSizeOptions = TRUE,
-    highlight = TRUE,
-    defaultSorted = "likes_received",
-    defaultColDef = colDef(headerClass = "header", align = "left", minWidth = 50),
-    columns = list(
-      username = colDef(
-        name = "User",
-        defaultSortOrder = "desc",
-        filterable = TRUE,
-        html = TRUE,
-        cell = function(value, index) {
-          profile <-
-            str_glue(
-              '<img class="img-fluid img-circle mr-2" src="{top_users_pictured[index, "user_avatar"]}" alt="{top_users_pictured[index, "id"]}">'
-            )
-          str_glue('{profile} {value}')
-        }
-      ),
-      title = colDef(
-        name = "Title",
-        filterable = TRUE,
-        na = "–"
-      ),
-      likes_received = colDef(
-        name = "Likes Received",
-        defaultSortOrder = "desc",
-        cell = function(value) {
-          build_bar_col(value, top_users_pictured$likes_received, "#fc5185")
-        }
-      ),
-      posts_read = colDef(
-        name = "Posts Read",
-        defaultSortOrder = "desc",
-        cell = function(value) {
-          build_bar_col(value, top_users_pictured$posts_read, "#3fc1c9")
-        },
-      ),
-      post_count = colDef(
-        name = "Post Count",
-        defaultSortOrder = "desc",
-        cell = function(value) {
-          build_bar_col(value, top_users_pictured$post_count, "#fc5185")
-        },
-      ),
-      days_visited = colDef(
-        name = "Days Visited",
-        defaultSortOrder = "desc",
-        cell = function(value) {
-          build_bar_col(value, top_users_pictured$days_visited, "#3fc1c9")
-        },
-      ),
-      topics_entered = colDef(
-        name = "Topics Entered",
-        defaultSortOrder = "desc",
-        cell = function(value) {
-          build_bar_col(value, top_users_pictured$topics_entered, "#fc5185")
-        },
-      )
-    ),
-    compact = TRUE,
-    class = "topusers-tbl"
-  )
+  make_user_reactable(.)
+```
+
+### Top 100 Users | <small> Yearly </small>
+
+```{r}
+top_users_ypic %>%
+  make_user_reactable(.)
+```
+
+### Top 100 Users | <small> Monthly </small>
+
+```{r}
+top_users_mpic %>%
+  make_user_reactable(.)
 ```
 
 Row
