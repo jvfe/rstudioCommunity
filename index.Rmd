@@ -8,7 +8,7 @@ output:
     self_contained: false
     includes:
       after_body: "afterInit.html"
-    css: styles/custom.css
+    css: css/custom.css
 ---
 
 ```{r load_proj, include=FALSE}
@@ -68,10 +68,9 @@ top_users_mpic <- top_users_monthly %>%
 Sidebar {.sidebar data-width=200}
 =====================================
 
-<div class="sidebar-pages">
-<a class="navlink" href="#home" data-toggle="tab" aria-expanded="false"><i class="fa fa-home"></i> Home</a>
-</div>
-
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML('sidebar.html')
+```
 
 Home
 =====================================

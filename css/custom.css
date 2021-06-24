@@ -14,7 +14,8 @@
   list-style: none;
   font-family: "Source Sans"
   text-decoration: none;
-
+  margin-top: 1em;
+  width: 100%;
 }
 
 .sidebar-pages > p {
@@ -23,19 +24,20 @@
 }
 
 .navlink {
-	text-decoration: none;
-	font-family: inherit;
-	/*text-transform: uppercase;*/
-	letter-spacing: .025em;
-	background: var(--secondary);
-	width: 100%;
-	height: 100%;
-	text-align: left;
-	padding: .5em;
-	margin: .1em 0;
-	color: white;
-	align-content: left;
-	border-bottom: 1px dotted white;
+  text-decoration: none;
+  font-family: inherit;
+  letter-spacing: .025em;
+  background: var(--secondary);
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: .5em;
+  margin: .1em 0;
+  color: white;
+  align-content: left;
+  border-bottom: 1px dotted white;
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .navlink:hover {
